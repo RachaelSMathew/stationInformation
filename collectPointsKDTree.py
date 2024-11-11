@@ -74,6 +74,7 @@ def newsearch(lat: float, long: float):
     return closestPoints
     
 def getNearest(root, target, axis): ## https://www.youtube.com/watch?v=Glp7THUpGow
+    ## (visual of exception: https://drive.google.com/file/d/1IbuNENnNDhXTKFEe0Dm7rOzIozFRNBmp/view?usp=sharing)
     if(root == None): return None
     nextBranch = None
     otherBranch = None
