@@ -3,6 +3,7 @@ import json
 import os
 import sys ## access parameters (sys.argv is array)
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from haversine import haversine, Unit
 ## setting enviorment vars in termial: https://askubuntu.com/a/58828
 ## eval(String)
@@ -19,6 +20,13 @@ class Tree:
 app = FastAPI()
 muralCoords = []
 kdTree = None
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def defaultFunc():
