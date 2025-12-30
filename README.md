@@ -1,2 +1,5 @@
 # getClosestLocations
 <img width="395" height="401" alt="Screenshot 2025-12-30 at 12 34 22 AM" src="https://github.com/user-attachments/assets/b01c57da-fc71-4d5f-8f27-5d2bb459b84d" />
+
+Exmaple of point data being stored in KDTree:
+     {'mural_registration_id': '19117', 'artist_credit': 'Chris Silva with Yollocalli', 'artwork_title': 'Flight Patterns', 'media': 'spray', 'year_installed': '2018', 'location_description': 'Lakeview Low Line', 'street_address': '3410 N Southport Ave', 'zip': '60657', 'ward': '44', 'affiliated_or_commissioning': 'Yollocalli Arts Reach', 'description_of_artwork': 'Flight Patterns was done in collaboration with young Artists from Yollocalli Arts Reach. Our Yollocalli team created stencil designs, assisted in making on the fly color decisions, and helped to get everything painted while amping up the overall enjoyment factor of producing this vibrant piece of public art.', 'community_areas': '57', 'latitude': 41.94375528, 'longitude': -87.66407359, 'location': {'type': 'Point', 'coordinates': [-87.66407359, 41.94375528]}}
