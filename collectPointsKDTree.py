@@ -2,38 +2,40 @@ import urllib.request
 import json
 import os
 import sys ## access parameters (sys.argv is array)
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from haversine import haversine, Unit
+import array as arr
+import time
 ## setting enviorment vars in termial: https://askubuntu.com/a/58828
 ## eval(String)
 ## os.environ['latitude'] returns a String
 ## if you pass an object into function, object wil get updated
 
-## MAIN
 class Tree:
-    def __init__(self, val, left, right):
+    def __init__(self, val, left, right, axis):
         self.left = left
         self.right = right
         self.val = val
+        self.axis = axis
 
-app = FastAPI()
 muralCoords = []
 kdTree = None
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
 def defaultFunc():
     global kdTree
     muralCoords = getCoordinates('https://data.cityofchicago.org/resource/we8h-apcf.json')
-    kdTree = createKDTree(muralCoords, 'latitude')
+    kdTree = createKDTree(muralCoords, whichAxisSplitShouldBe(muralCoords))
+    print(isTreeBalanced(kdTree))
     return kdTree
+
+def isTreeBalanced(root):
+    if(root == None): return True
+    leftHeight = findHeight(root.left) if root.left else 0
+    rightHeight =  findHeight(root.right) if root.right else 0
+    return {'balanced':abs(leftHeight-rightHeight) <= 1, 'leftHeight':leftHeight, 'rightHeight':rightHeight}
+
+def findHeight(root):
+    if(root == None): return 0
+    return 1 + max(findHeight(root.left), findHeight(root.right))
 
 def getCoordinates(url):
     response = urllib.request.urlopen(url)
@@ -44,153 +46,108 @@ def getCoordinates(url):
         object["longitude"] = float(object["longitude"])
     return data
 
+def whichAxisSplitShouldBe(coords):
+    sum_x=0
+    sum_y=0
+    sum_x2=0
+    sum_y2=0
+    ## find standard deviation instead
+    for coord in coords:
+        sum_x += coord['latitude']
+        sum_y += coord['longitude']
+        sum_x2 += coord['latitude']**2
+        sum_y2 += coord['longitude']**2
+
+    if(len(coords) == 0): return 'latitude'
+
+    mean_x = sum_x / len(coords)
+    mean_y = sum_y / len(coords)
+    var_x = sum_x2 / len(coords) - mean_x**2
+    var_y = sum_y2 / len(coords) - mean_y**2
+    return 'latitude' if var_x > var_y else 'longitude'
+
 def createKDTree(coords, axis):
-    if(len(coords) == 1): return Tree(coords[0], None, None)
+    if(len(coords) == 1): return Tree(coords[0], None, None, axis)
     if(len(coords) == 0): return None
     
-    coords.sort(key=lambda x: x[axis])
+    coords.sort(key=lambda x: x[axis]) ## O(nlogn)
     mid = int(len(coords)/2)
     rootNode = coords[mid]
-    root = Tree(rootNode, None, None)
-    root.left = createKDTree(coords[:mid], 'latitude' if axis == 'longitude' else 'longitude') ## left node
-    root.right = createKDTree(coords[mid+1:], 'latitude' if axis == 'longitude' else 'longitude') ## right node
+    ## send to dynamo DB
+    root = Tree(rootNode, None, None, axis)
+    root.left = createKDTree(coords[:mid], whichAxisSplitShouldBe(coords[:mid])) ## left node
+    root.right = createKDTree(coords[mid+1:],  whichAxisSplitShouldBe(coords[mid+1:])) ## right node
     return root
 
-@app.get("/newsearch/lat={lat}long={long}")
-def newsearch(lat: float, long: float):
+def newsearch(lat: float, long: float, minDistance=0):
     global kdTree
     target = {'latitude': lat, 'longitude': long}
-    closestPoints = []
-
-    for i in range(100):
-        closestObj = getNearest(kdTree, target, 'latitude')
-        if(closestObj == None): break
-        point = (closestObj.val['latitude'], closestObj.val['longitude'])
-        addToArr = closestObj.val
-        addToArr["dist"] = haversine(point, (lat, long), unit=Unit.MILES)
-        closestPoints.append(addToArr)
-        kdTree = deleteNode(closestObj, kdTree, 'latitude')
+    closestPoints = kNearestKDTree(kdTree, target, 20, minDistance)
     
     ## check if locations repeat!
     noRepeats = []
     for i in closestPoints:
-        noRepeats.append(i["mural_registration_id"])
-        print(i["dist"])
+        print(i)
+        noRepeats.append(i[1]["mural_registration_id"])
+    
     if(len(noRepeats) == len(set(noRepeats))):
         print("No repeated locations!")
+    
+    for i in closestPoints:
+        print('latitude', i[1]['latitude'], 'longitude', i[1]['longitude'], 'distance', i[0])
 
     return closestPoints
+def kNearestKDTree(root, target, k, minDistance=0):
+    results = []
     
-def getNearest(root, target, axis): ## https://www.youtube.com/watch?v=Glp7THUpGow
-    ## (visual of exception: https://drive.google.com/file/d/1IbuNENnNDhXTKFEe0Dm7rOzIozFRNBmp/view?usp=sharing)
-    if(root == None): return None
-    nextBranch = None
-    otherBranch = None
-    
-    if(root.val[axis] < target[axis]):
-        nextBranch = root.right
-        otherBranch = root.left
-    else:
-        nextBranch = root.left
-        otherBranch = root.right
-    
-    temp = getNearest(nextBranch, target, 'latitude' if axis == 'longitude' else 'longitude')
-    best = root if (temp == None or abs(target[axis]-temp.val[axis]) > abs(target[axis]-root.val[axis])) else temp
-    
-    distToBest = target[axis]-best.val[axis]
-    distToCurrIndex = target[axis]-root.val[axis]
-    
-    if(distToBest * distToBest >= distToCurrIndex * distToCurrIndex):
-        temp = getNearest(otherBranch, target, 'latitude' if axis == 'longitude' else 'longitude')
-        best = root if (temp == None or abs(target[axis]-temp.val[axis]) > abs(target[axis]-root.val[axis])) else temp
+    def getNearest(root): ## https://www.youtube.com/watch?v=Glp7THUpGow
+        if(root == None or root.val['latitude'] > 90 or root.val['latitude'] < -90 or root.val['longitude'] > 180 or root.val['longitude'] < -180): return None ## once coordinate in the db has a Latitude 1914109.45 which is out of range [-90, 90]
+        
+        nextBranch = None
+        otherBranch = None
 
-    return best ## return object of nearest coordinate
-
-def findMin(root, currAxis, axis): ## return object of min in tree
-    if(root == None): return None
-    if(currAxis == axis):
-        if(root.left == None): return root
+        # Calculate distance to current node
+        dist = haversine(
+            (root.val['latitude'], root.val['longitude']), 
+            (target['latitude'], target['longitude']), 
+            unit=Unit.MILES
+        )
+        
+        if dist >= minDistance: 
+            # Add to results if we have room or if closer than existing
+            if len(results) < k:
+                results.append((dist, root.val))
+                results.sort(key=lambda x: x[0])  # Keep sorted
+            elif dist < results[-1][0]:  # Replace farthest if closer
+                results[-1] = (dist, root.val)
+                results.sort(key=lambda x: x[0])   
+            
+        axis = root.axis
+        if(root.val[axis] < target[axis]):
+            nextBranch = root.right
+            otherBranch = root.left
         else:
-            return findMin(root.left, 'latitude' if currAxis == 'longitude' else 'longitude', axis)
-    else:
-        leftMin = findMin(root.left, 'latitude' if currAxis == 'longitude' else 'longitude', axis)
-        rightMin = findMin(root.right, 'latitude' if currAxis == 'longitude' else 'longitude', axis)
-        mostMin = root
-        if(rightMin and mostMin.val[axis] > rightMin.val[axis]): mostMin = rightMin
-        if(leftMin and mostMin.val[axis] > leftMin.val[axis]): mostMin = leftMin
-        return mostMin
+            nextBranch = root.left
+            otherBranch = root.right
+        
+        temp = getNearest(nextBranch)
+        best = root if (temp == None or abs(target[axis]-temp.val[axis]) > abs(target[axis]-root.val[axis])) else temp
+        
+        ## (visual of exception: https://drive.google.com/file/d/1IbuNENnNDhXTKFEe0Dm7rOzIozFRNBmp/view?usp=sharing)
+        distToBest = abs(target[axis]-best.val[axis])
+        distToCurrIndex = abs(target[axis]-root.val[axis])
+        
+        if(distToBest >= distToCurrIndex):
+            temp = getNearest(otherBranch)
+            best = root if (temp == None or abs(target[axis]-temp.val[axis]) > abs(target[axis]-root.val[axis])) else temp
 
-def deleteNode(target, root, currAxis): ## https://www.cs.cmu.edu/~ckingsf/bioinfo-lectures/kdtrees.pdf
-    if(root == None): return None
-    nextAxis = 'latitude' if currAxis == 'longitude' else 'longitude'
-    
-    ## point to delete
-    if(target.val["mural_registration_id"] == root.val["mural_registration_id"]):
-        if(root.right):
-            minObj = findMin(root.right, nextAxis, currAxis)
-            root.val = minObj.val
-            root.right = deleteNode(minObj, root.right, nextAxis)
-        elif(root.left):
-            minObj = findMin(root.left, nextAxis, currAxis)
-            root.val = minObj.val
-            ## swap left and right subtrees of the node that's being deleted
-            root.right = deleteNode(minObj, root.left, nextAxis)
-            root.left = None
-        else: ## leaf node (no right or left node)
-            root = None
+    getNearest(root)
+    return results
 
-    
-    ## still need to search for point
-    elif target.val[currAxis] == root.val[currAxis]: ## check both sides
-        prevLeft = root.left
-        root.left = deleteNode(target, root.left, nextAxis)
-        if(root.left == prevLeft):
-            root.right = deleteNode(target, root.right, nextAxis)
-
-    elif target.val[currAxis] < root.val[currAxis]:
-        root.left = deleteNode(target, root.left, nextAxis)
-
-    else:
-        root.right = deleteNode(target, root.right, nextAxis)
-
-    return root
-
-
-''' example structure data of each art_piece:
-    "park_name": "HUMBOLDT (BARON VON)",
-    "park_number": "219",
-    "art": "Interpreting Nature",
-    "artist": "Roman Villareal",
-    "owner": "CPD",
-    "x_coordinate": "1156808.64946",
-    "y_coordinate": "1909066.8679200001",
-    "latitude": "41.906255000000002",
-    "longitude": "-87.699420000000003",
-    "location": {
-      "latitude": "41.906255",
-      "longitude": "-87.69942"
-    },
-    ":@computed_region_rpca_8um6": "4",
-    ":@computed_region_vrxf_vc4k": "25",
-    ":@computed_region_6mkv_f3dw": "22535",
-    ":@computed_region_bdys_3d7i": "301",
-    ":@computed_region_43wa_7qmu": "49",
-    ":@computed_region_awaf_s7ux": "10"
-  },
-
-def swapSubTrees(index, arrTree, level, lenTree): ## swap the subtrees (children of current node i.e. index)
-    if(index >= lenTree or (index*2+1 >= lenTree and index*2+2 >= lenTree)): return lenTree
-    startingIndex = index*2+1
-    endingIndex = startingIndex + (math.pow(2, level)-1)
-    if(endingIndex >= lenTree):
-        for i in range(endingIndex-lenTree+1):
-            arrTree.append({})
-        lenTree = lenTree + (endingIndex-lenTree+1)
-    ## swap subtrees
-    temp = arrTree[startingIndex:startingIndex+int(math.pow(2, level)/2)]
-    arrTree[startingIndex:startingIndex+int(math.pow(2, level)/2)] = arrTree[startingIndex+int(math.pow(2, level)/2):endingIndex+1]
-    arrTree[startingIndex+int(math.pow(2, level)/2):endingIndex+1] = temp
-    lenTree = swapSubTrees(index*2+1, arrTree, level+1, lenTree)
-    lenTree = swapSubTrees(index*2+2, arrTree, level+1, lenTree)
-    return lenTree
-'''
+## MAIN
+if __name__ == '__main__':
+    start_time = time.time()
+    defaultFunc()
+    ## tests for 41.8832° N, 87.6424° W
+    newsearch(41.8832, -87.6424, 0.7)
+    print("Time taken in seconds:", time.time() - start_time)
