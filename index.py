@@ -6,7 +6,8 @@ sys.path.append('.') ## appends . to end of PYTHONPATH
 from collectPointsKDTree import newsearch, defaultFunc
 import time
 app = FastAPI()
-from opensearch import createIndex
+from opensearch import createIndex, searchIndex
+import copy
 
 # Enable CORS
 app.add_middleware(
@@ -27,12 +28,19 @@ async def startup_event():
 
 # This runs EVERY time someone visits /api/search
 @app.get("/newsearch/")
-async def search(lat: float, long: float, minDistance: float = 0):
+async def search(lat: float, long: float, minDistance: float = 0, searchQuery: str = ''):
     start_time = time.time()
+    opensearchReturn = searchIndex(searchQuery).get('hits', []).get('hits', [])
     results = newsearch(lat, long, minDistance)
+    resultsFurtherFiltered = []
+    for i in opensearchReturn:
+        for result in results:
+            if(result[1]['mural_registration_id'] == i.get('_id')):
+                resultsFurtherFiltered.append(copy.deepcopy(result))
     return {
-        "results": results,
-        "count": len(results),
+        "opensearchReturn": opensearchReturn,
+        "results": results if searchQuery == "" else resultsFurtherFiltered,
+        "count": len(results if searchQuery == "" else resultsFurtherFiltered),
         "time_seconds": time.time() - start_time
     }
 

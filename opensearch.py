@@ -29,3 +29,26 @@ def addResultToIndex(muralCoords):
             "searchableContent": muralCoord.get('artwork_title','') +  muralCoord.get('description_of_artwork', '') +  muralCoord['street_address'] + muralCoord.get('media', '') + muralCoord.get('affiliated_or_commissioning','')+muralCoord.get('year_installed','')+muralCoord['artist_credit'] + muralCoord.get('location_description', '')
         }
         client.index(index=index_name, body=document, id=muralCoord['mural_registration_id'], refresh=True)
+
+def searchIndex(query_string):
+    query = {
+        "query": {
+            "query_string": {
+            "query": query_string ## remove all special characters
+            }
+        },
+        "sort": [
+            {
+            "_score": {
+                "order": "desc"
+            }
+            }
+        ],
+        "size": 2000
+    }
+
+    response = client.search(
+        body = query,
+        index = 'chicago_art_installations',
+    )
+    return response
