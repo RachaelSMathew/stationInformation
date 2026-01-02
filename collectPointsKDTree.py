@@ -5,7 +5,7 @@ import sys ## access parameters (sys.argv is array)
 from haversine import haversine, Unit
 import array as arr
 import time
-import opensearch
+from opensearch import addResultToIndex
 
 ## setting enviorment vars in termial: https://askubuntu.com/a/58828
 ## eval(String)
