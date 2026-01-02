@@ -149,5 +149,5 @@ if __name__ == '__main__':
     start_time = time.time()
     defaultFunc()
     ## tests for 41.8832° N, 87.6424° W
-    newsearch(41.8832, -87.6424, 0.7)
+    newsearch(47.8832, -87.6424, 0.7)
     print("Time taken in seconds:", time.time() - start_time)

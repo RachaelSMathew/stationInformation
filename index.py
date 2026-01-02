@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import sys
 sys.path.append('.') ## appends . to end of PYTHONPATH
 from collectPointsKDTree import newsearch, defaultFunc
-
+import time
 app = FastAPI()
 
 # Enable CORS
@@ -14,16 +14,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+## a test where the points have more vairant long
+## a test where the points have more vairant lat
+## a test where the points are all within a mile of aother point 
+## do these tests with a point in chicago and one far away (in SC)
 @app.on_event("startup")
 async def startup_event():
     """Initialize KD-tree when FastAPI starts"""
     defaultFunc()  # Runs once at startup, after server/uvicorn.run starts
 
 # This runs EVERY time someone visits /api/search
-@app.get("/api/search")
-async def search(lat: float, lon: float, minDistance: float = 0):
-    results = newsearch(lat, lon, minDistance)
+@app.get("/newsearch/lat={lat}long={long}minDistance={minDistance}")
+async def search(lat: float, long: float, minDistance: float = 0):
+    start_time = time.time()
+    results = newsearch(lat, long, minDistance)
     return {
         "results": results,
         "count": len(results),
