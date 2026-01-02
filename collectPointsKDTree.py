@@ -5,6 +5,8 @@ import sys ## access parameters (sys.argv is array)
 from haversine import haversine, Unit
 import array as arr
 import time
+import opensearch
+
 ## setting enviorment vars in termial: https://askubuntu.com/a/58828
 ## eval(String)
 ## os.environ['latitude'] returns a String
@@ -24,6 +26,7 @@ def defaultFunc():
     global kdTree
     muralCoords = getCoordinates('https://data.cityofchicago.org/resource/we8h-apcf.json')
     kdTree = createKDTree(muralCoords, whichAxisSplitShouldBe(muralCoords))
+    addResultToIndex(muralCoords)
     print(isTreeBalanced(kdTree))
     return kdTree
 

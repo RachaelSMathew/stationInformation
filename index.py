@@ -6,6 +6,7 @@ sys.path.append('.') ## appends . to end of PYTHONPATH
 from collectPointsKDTree import newsearch, defaultFunc
 import time
 app = FastAPI()
+from opensearch import createIndex
 
 # Enable CORS
 app.add_middleware(
@@ -21,10 +22,11 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """Initialize KD-tree when FastAPI starts"""
+    createIndex()
     defaultFunc()  # Runs once at startup, after server/uvicorn.run starts
 
 # This runs EVERY time someone visits /api/search
-@app.get("/newsearch/lat={lat}long={long}minDistance={minDistance}")
+@app.get("/newsearch/")
 async def search(lat: float, long: float, minDistance: float = 0):
     start_time = time.time()
     results = newsearch(lat, long, minDistance)
