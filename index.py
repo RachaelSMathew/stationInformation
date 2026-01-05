@@ -38,7 +38,6 @@ async def search(lat: float, long: float, minDistance: float = 0, searchQuery: s
             if(result[1]['mural_registration_id'] == i.get('_id')):
                 resultsFurtherFiltered.append(copy.deepcopy(result))
     return {
-        "opensearchReturn": opensearchReturn,
         "results": results if searchQuery == "" else resultsFurtherFiltered,
         "count": len(results if searchQuery == "" else resultsFurtherFiltered),
         "time_seconds": time.time() - start_time

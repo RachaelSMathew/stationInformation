@@ -1,13 +1,24 @@
-from opensearchpy import OpenSearch
+from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
+import boto3
+import os
+
+host = '' # cluster endpoint, for example: my-test-domain.us-east-1.es.amazonaws.com
+region = 'us-east-2'
+service = 'es'
+credentials = boto3.Session().get_credentials()
+auth = AWSV4SignerAuth(credentials, region, service)
+
+isProduction = os.getenv('NODE_ENV', 'development') == 'production'
 
 index_name = 'chicago_art_installations'
 client = OpenSearch(
-    hosts=[{'host': 'localhost', 'port': 9200}],
-    http_auth=('admin', 'StrongPassword123!'),  # Use the correct password
+    hosts=[{'host': host, 'port': 443} if isProduction else {'host': 'localhost', 'port': 9200}],
+    http_auth=auth if isProduction else ('admin', 'StrongPassword123!'),  # Use the correct password
     use_ssl=True,  # Enable SSL
     verify_certs=False,  # Don't verify certs for local dev
     ssl_assert_hostname=False,
     ssl_show_warn=False,
+    connection_class = RequestsHttpConnection if isProduction else None,
 )
 
 def createIndex():
@@ -34,7 +45,7 @@ def searchIndex(query_string):
     query = {
         "query": {
             "query_string": {
-            "query": query_string ## remove all special characters
+                "query": "*"+query_string+"*", ## remove all special characters
             }
         },
         "sort": [
