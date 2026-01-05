@@ -1,0 +1,4 @@
+name: Set ENV vars when pushed to main branch
+
+env:
+  NODE_ENV: production
