@@ -2,9 +2,9 @@ from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
 import boto3
 import os
 
-host = '' # cluster endpoint, for example: my-test-domain.us-east-1.es.amazonaws.com
+host = '1oh1z3rqlx7kculsnqqf.us-east-2.aoss.amazonaws.com' # cluster endpoint, for example: my-test-domain.us-east-1.es.amazonaws.com
 region = 'us-east-2'
-service = 'es'
+service = 'aoss'
 credentials = boto3.Session().get_credentials()
 auth = AWSV4SignerAuth(credentials, region, service)
 
