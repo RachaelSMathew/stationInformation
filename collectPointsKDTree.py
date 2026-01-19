@@ -25,7 +25,7 @@ kdTree = None
 def defaultFunc():
     global kdTree
     muralCoords = getCoordinates('https://data.cityofchicago.org/resource/we8h-apcf.json')
-    kdTree = createKDTree(muralCoords, whichAxisSplitShouldBe(muralCoords))
+    createKDTree(muralCoords, whichAxisSplitShouldBe(muralCoords))
     addResultToIndex(muralCoords)
     print(isTreeBalanced(kdTree))
     return kdTree
@@ -70,6 +70,7 @@ def whichAxisSplitShouldBe(coords):
     return 'latitude' if var_x > var_y else 'longitude'
 
 def createKDTree(coords, axis):
+    global kdTree
     if(len(coords) == 1): return Tree(coords[0], None, None, axis)
     if(len(coords) == 0): return None
     
@@ -80,12 +81,13 @@ def createKDTree(coords, axis):
     root = Tree(rootNode, None, None, axis)
     root.left = createKDTree(coords[:mid], whichAxisSplitShouldBe(coords[:mid])) ## left node
     root.right = createKDTree(coords[mid+1:],  whichAxisSplitShouldBe(coords[mid+1:])) ## right node
+    kdTree = root
     return root
 
-def newsearch(lat: float, long: float, minDistance=0):
+def newsearch(lat: float, long: float, minDistance=0, k=20):
     global kdTree
     target = {'latitude': lat, 'longitude': long}
-    closestPoints = kNearestKDTree(kdTree, target, 20, minDistance)
+    closestPoints = kNearestKDTree(kdTree, target, k, minDistance)
     
     ## check if locations repeat!
     noRepeats = []
