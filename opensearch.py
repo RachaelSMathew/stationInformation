@@ -1,15 +1,11 @@
 from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
 import boto3
 import os
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 host = '1oh1z3rqlx7kculsnqqf.us-east-2.aoss.amazonaws.com' # cluster endpoint, for example: my-test-domain.us-east-1.es.amazonaws.com
 region = 'us-east-2'
 service = 'aoss'
-credentials = boto3.Session().get_credentials()
+credentials = boto3.Session().get_credentials() ## render has it's own environment variables
 auth = AWSV4SignerAuth(credentials, region, service)
 
 isProduction = os.getenv('NODE_ENV', 'development') == 'production'
@@ -26,17 +22,10 @@ client = OpenSearch(
 )
 
 def createIndex():
-    index_body = {
-        "settings": {"number_of_shards": 1, "number_of_replicas": 0},
-        "mappings": {
-            "properties": {
-                "searchableContent": {"type": "text"},
-            }
-        }
-    }
-
-    if not client.indices.exists(index=index_name):
-        client.indices.create(index=index_name, body=index_body, ignore=400)
+    # OpenSearch Serverless automatically creates indices when you first index documents
+    # No need to manually create indices
+    print(f"OpenSearch Serverless collection '{index_name}' is ready for indexing")
+    return True
 
 def addResultToIndex(muralCoords):
     for muralCoord in muralCoords:
