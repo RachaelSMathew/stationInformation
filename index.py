@@ -16,10 +16,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-## a test where the points have more vairant long
-## a test where the points have more vairant lat
-## a test where the points are all within a mile of aother point 
-## do these tests with a point in chicago and one far away (in SC)
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize KD-tree when FastAPI starts"""

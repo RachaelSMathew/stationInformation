@@ -7,6 +7,13 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
 import collectPointsKDTree
 
+""" 
+1. a test where the points have more vairance in longitude
+2. a test where the points have more vairance in latitude
+3. a test where the points are all within two miles of another point 
+4. do these tests with a point in chicago and one far away (in SC)
+"""
+
 def testKDTree():
     files = ['test_material/chicago_coordinates_latitude_variance.json', 'test_material/chicago_coordinates_longitude_variance.json', 'test_material/chicago_coordinates_within_two_miles.test.json']
 
