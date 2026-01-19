@@ -32,7 +32,7 @@ def addResultToIndex(muralCoords):
         document = {
             "searchableContent": muralCoord.get('artwork_title','') +  muralCoord.get('description_of_artwork', '') +  muralCoord['street_address'] + muralCoord.get('media', '') + muralCoord.get('affiliated_or_commissioning','')+muralCoord.get('year_installed','')+muralCoord['artist_credit'] + muralCoord.get('location_description', '')
         }
-        client.index(index=index_name, body=document, id=muralCoord['mural_registration_id'], refresh=True)
+        client.index(index=index_name, body=document, id=muralCoord['mural_registration_id'])
 
 def searchIndex(query_string):
     query = {
