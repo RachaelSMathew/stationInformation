@@ -1,4 +1,4 @@
-name: Set ENV vars when pushed to main branch
+name: Install packages and run tests to ensure KD Tree alg. accuracy
 
 on: push
 
