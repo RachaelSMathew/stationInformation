@@ -19,15 +19,15 @@ def testKDTree():
         coord_in_chicago = {'latitude': 47.8832, 'longitude': -87.6424}
         coord_in_south_carolina = {'latitude': 34.0522, 'longitude': -81.0559}
         for coord in [coord_in_chicago, coord_in_south_carolina]:
-        closestPoints = (collectPointsKDTree.newsearch(coord['latitude'], coord['longitude'], 0, len(points)))
-        startingPoint = closestPoints[0]
-        fullyConsectutive = True
-        for i in range(1, len(points)):
-            if(startingPoint[0] > closestPoints[i][0]):
-                print('Starting point is not closer than the ${i}th closest point');
-                fullyConsectutive = False
-                break;
-            startingPoint = closestPoints[i]
-        if(fullyConsectutive):
-            print('All', len(points), 'points are consecutive');
-        assert fullyConsectutive == True
+            closestPoints = (collectPointsKDTree.newsearch(coord['latitude'], coord['longitude'], 0, len(points)))
+            startingPoint = closestPoints[0]
+            fullyConsectutive = True
+            for i in range(1, len(points)):
+                if(startingPoint[0] > closestPoints[i][0]):
+                    print('Starting point is not closer than the ${i}th closest point');
+                    fullyConsectutive = False
+                    break;
+                startingPoint = closestPoints[i]
+            if(fullyConsectutive):
+                print('All', len(points), 'points are consecutive');
+            assert fullyConsectutive == True
