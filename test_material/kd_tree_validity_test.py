@@ -5,7 +5,7 @@ import os
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 ## os.path.dirname(__file__) == '/Users/rachaelmathew/stationInformation/test_material'
 sys.path.append(parent_dir)
-import collectPointsKDTree
+from collectPointsKDTree import createKDTree, whichAxisSplitShouldBe, newsearch
 
 """ 
 1. a test where the points have more vairance in longitude
