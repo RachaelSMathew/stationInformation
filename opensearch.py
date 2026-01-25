@@ -5,7 +5,7 @@ import os
 host = 's2cdyuddjlo8xk09s52j.us-east-2.aoss.amazonaws.com' # cluster endpoint, for example: my-test-domain.us-east-1.es.amazonaws.com
 region = 'us-east-2'
 service = 'aoss'
-credentials = boto3.Session().get_credentials() ## render has it's own environment variables
+credentials = boto3.Session().get_credentials() ## Render has it's own environment variables
 auth = AWSV4SignerAuth(credentials, region, service)
 
 isProduction = os.getenv('NODE_ENV', 'development') == 'production'
@@ -22,30 +22,63 @@ client = OpenSearch(
 )
 
 def createIndex():
-    # OpenSearch Serverless automatically creates indices when you first index documents
-    # No need to manually create indices
-    print(f"OpenSearch Serverless collection '{index_name}' is ready for indexing")
-    return True
+    index_body = {
+        "settings": {"number_of_shards": 1, "number_of_replicas": 0},
+        "mappings": {
+            "properties": {
+                "artwork_title": {"type": "text"},
+                "description_of_artwork": {"type": "text"},
+                "street_address": {"type": "text"},
+                "media": {"type": "text"},
+                "affiliated_or_commissioning": {"type": "text"},
+                "year_installed": {"type": "text"},
+                "artist_credit": {"type": "text"},
+                "location_description": {"type": "text"},
+            }
+        }
+    }
+
+    if not client.indices.exists(index=index_name):
+        client.indices.create(index=index_name, body=index_body, ignore=400)
 
 def addResultToIndex(muralCoords):
     for muralCoord in muralCoords:
         document = {
-            "searchableContent": muralCoord.get('artwork_title','') +  muralCoord.get('description_of_artwork', '') +  muralCoord['street_address'] + muralCoord.get('media', '') + muralCoord.get('affiliated_or_commissioning','')+muralCoord.get('year_installed','')+muralCoord['artist_credit'] + muralCoord.get('location_description', '')
+            "artwork_title": muralCoord.get('artwork_title', ''),
+            "description_of_artwork": muralCoord.get('description_of_artwork', ''),
+            "street_address": muralCoord.get('street_address', ''),
+            "media": muralCoord.get('media', ''),
+            "affiliated_or_commissioning": muralCoord.get('affiliated_or_commissioning', ''),
+            "year_installed": muralCoord.get('year_installed', ''),
+            "artist_credit": muralCoord.get('artist_credit', ''),
+            "location_description": muralCoord.get('location_description', ''),
         }
         client.index(index=index_name, body=document, id=muralCoord['mural_registration_id'])
 
 def searchIndex(query_string):
     query = {
         "query": {
-            "query_string": {
-                "query": "*"+query_string+"*", ## remove all special characters
+            "multi_match": {
+                "query": query_string,
+                "type": "best_fields",
+                "operator": "or",
+                "fields": [
+                    "artwork_title^2", 
+                    "description_of_artwork^1.2", 
+                    "street_address^1.1", 
+                    "media^1", 
+                    "affiliated_or_commissioning^1", 
+                    "year_installed^1", 
+                    "artist_credit^2", 
+                    "location_description^1.1"
+                ]
             }
         },
         "sort": [
             {
-            "_score": {
-                "order": "desc"
-            }
+                "_score": {
+                    "order": "desc"
+                }
             }
         ],
         "size": 2000
